@@ -40,7 +40,7 @@ namespace PKI.Authentication.Module
 
             String username = "";
 
-            // check for cert
+            // check for cert 
             if (context.Request.ClientCertificate.IsPresent)
             {
                 // authenticate certificate
