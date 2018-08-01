@@ -13,6 +13,9 @@ namespace PKI.Authentication.Module
         private String logPath = @"C:\inetpub\logs\PKIAuth\";
         public void Init(HttpApplication context)
         {
+            /* On startup, bind the AuthenticateRequestHandler function to the AuthenticateRequest
+             * event that is called during the Authentication layer of IIS.
+             * Then, create the log file for the current startup time*/
             context.AuthenticateRequest += new EventHandler(AuthenticateRequestHandler);
             System.DateTime dateTime = System.DateTime.Now;
             logPath += dateTime.Day.ToString() + "_" + dateTime.Month.ToString() + "_" + dateTime.Year.ToString() + "-" + dateTime.Hour + "-" + dateTime.Minute + "-" + dateTime.Second + "-" + dateTime.Millisecond + "_Log.txt";
@@ -28,10 +31,14 @@ namespace PKI.Authentication.Module
 
         private void AuthenticateRequestHandler(object sender, EventArgs e)
         {
-            // pull the context from the request
+            /* The main function of the module. Called by the AuthenticateRequest event. Handles request and
+             * attaches username to the Identity of the request 
+             */
+            // Pull the context from the request
             var app = (HttpApplication)sender;
             HttpContext context = app.Context;
 
+            // Log information about the request
             File.AppendAllText(logPath, "\tRequest received. " +
                 Environment.NewLine + "\t\tURL: " + context.Request.Url +
                 Environment.NewLine + "\t\tReferrer: " + context.Request.UrlReferrer +
@@ -40,10 +47,10 @@ namespace PKI.Authentication.Module
 
             String username = "";
 
-            // check for cert 
+            // Check for client certificate
             if (context.Request.ClientCertificate.IsPresent)
             {
-                // authenticate certificate
+                // Authenticate certificate
                 if (IsAuthenticated(context.Request.ClientCertificate, ref username))
                 {
                     context.User = new GenericPrincipal(new GenericIdentity(username), null);
@@ -65,9 +72,10 @@ namespace PKI.Authentication.Module
 
         public bool IsAuthenticated(HttpClientCertificate httpClientCertificate, ref string username)
         {
-            // cast cert to usable type
+            // Explicitly cast certificate to usable type, X509Certificate2
             var certificate = new X509Certificate2(httpClientCertificate.Certificate);
             string cName = "";
+            // Verify the certificate, then if it is create the username and bind it to the reference
             if (Verify(certificate, ref cName))
             {
                 string[] name = cName.Trim().Split(' ');
@@ -77,6 +85,7 @@ namespace PKI.Authentication.Module
                 }
                 else if (name.Length > 0)
                 {
+                    // max specifies the maximum length of the username generated
                     int max = 10;
                     for(int i = 0; i < name.Length; i++)
                     {
@@ -119,12 +128,15 @@ namespace PKI.Authentication.Module
 
         private bool Verify(X509Certificate2 certificate, ref string cName)
         {
+            /* This function currently only checks to see if the certificate subject contains a common name.
+               IIS checks the certificate against the Trusted Root certificate store before the AuthenticateRequest event is called,
+               so there is no need to do that here. In the future, 3rd party verification will be called here
+               to check if the certificate is valid. */
             if (certificate == null)
             {
                 File.AppendAllText(logPath, "\tCertificate not found in Verify()" + Environment.NewLine);
                 return false;
             }
-            // implement 3rd party cert verification here
             string subject = certificate.Subject;
             //string emailPattern = @"(?(DEFINE)
             // (?<addr_spec> (?&local_part) @ (?&domain) )
@@ -170,7 +182,6 @@ namespace PKI.Authentication.Module
             }
             File.AppendAllText(logPath, "\tCN match not found" + Environment.NewLine);
             return false;
-            // return certificate.Verify();
         }
     }
 }
