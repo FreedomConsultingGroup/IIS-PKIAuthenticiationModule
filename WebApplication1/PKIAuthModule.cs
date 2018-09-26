@@ -1,25 +1,20 @@
 ﻿using System;
 using System.Security.Principal;
 using System.Web;
-using System.IO;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography.X509Certificates;
 
-namespace PKI.Authentication.Module
+namespace FCG.PKIAuthentication
 {
     public class PkiAuthModule : IHttpModule
     {
-        #region IHttpModule Members
-        private String logPath = @"C:\inetpub\logs\PKIAuth\";
         public void Init(HttpApplication context)
         {
             /* On startup, bind the AuthenticateRequestHandler function to the AuthenticateRequest
              * event that is called during the Authentication layer of IIS.
              * Then, create the log file for the current startup time*/
             context.AuthenticateRequest += new EventHandler(AuthenticateRequestHandler);
-            System.DateTime dateTime = System.DateTime.Now;
-            logPath += dateTime.Day.ToString() + "_" + dateTime.Month.ToString() + "_" + dateTime.Year.ToString() + "-" + dateTime.Hour + "-" + dateTime.Minute + "-" + dateTime.Second + "-" + dateTime.Millisecond + "_Log.txt";
-            File.AppendAllText(logPath, System.DateTime.Now + ": AuthenticateRequest Event bound" + Environment.NewLine);
+            Global.LogInfo("Method: FCG.PKIAuthentication.PkiAuth.AuthenticateRequestHandler bound to AuthenticateRequest Event");
         }
 
 
@@ -27,23 +22,21 @@ namespace PKI.Authentication.Module
         {
         }
 
-        #endregion
-
         private void AuthenticateRequestHandler(object sender, EventArgs e)
         {
             /* The main function of the module. Called by the AuthenticateRequest event. Handles request and
              * attaches username to the Identity of the request 
              */
             // Pull the context from the request
-            var app = (HttpApplication)sender;
+            HttpApplication app = (HttpApplication)sender;
             HttpContext context = app.Context;
 
             // Log information about the request
-            File.AppendAllText(logPath, "\tRequest received. " +
-                Environment.NewLine + "\t\tURL: " + context.Request.Url +
-                Environment.NewLine + "\t\tReferrer: " + context.Request.UrlReferrer +
-                Environment.NewLine + "\t\tAgent: " + context.Request.UserAgent +
-                Environment.NewLine + "\t\tIP: " + context.Request.UserHostAddress + Environment.NewLine);
+            Global.LogInfo("Request received. " +
+                Environment.NewLine + "\tURL: " + context.Request.Url +
+                Environment.NewLine + "\tReferrer: " + context.Request.UrlReferrer +
+                Environment.NewLine + "\tAgent: " + context.Request.UserAgent +
+                Environment.NewLine + "\tIP: " + context.Request.UserHostAddress);
 
             String username = "";
 
@@ -54,18 +47,18 @@ namespace PKI.Authentication.Module
                 if (IsAuthenticated(context.Request.ClientCertificate, ref username))
                 {
                     context.User = new GenericPrincipal(new GenericIdentity(username), null);
-                    File.AppendAllText(logPath, "\tUser: " + username + " properly authenticated" + Environment.NewLine);
+                    Global.LogInfo("\tUser: " + username + " properly authenticated");
                     // alternatively, context.User = new GenericPrincipal(new GenericIdentity(email), null);
                 }
                 else
                 {
-                    File.AppendAllText(logPath, "\tUnable to authenticate certificate" + Environment.NewLine);
+                    Global.LogInfo("\tUnable to authenticate certificate");
                     throw new HttpException(403, "Forbidden");
                 }
             }
             else
             {
-                File.AppendAllText(logPath, "\tCertificate not found" + Environment.NewLine);
+                Global.LogInfo("\tCertificate not found");
                 throw new HttpException(403, "Forbidden");
             }
         }
@@ -109,18 +102,18 @@ namespace PKI.Authentication.Module
                             }
                         }
                     }
-                    File.AppendAllText(logPath, "\tUsername: \"" + username + "\" found. Logging in..." + Environment.NewLine);
+                    Global.LogInfo("\tUsername: \"" + username + "\" found. Logging in...");
                 }
                 else
                 {
-                    File.AppendAllText(logPath, "\tCertificate does not have a Common Name (CN), unable to create username" + Environment.NewLine);
+                    Global.LogInfo("\tCertificate does not have a Common Name (CN), unable to create username");
                     return false;
                 }
                 return true;
             }
             else
             {
-                File.AppendAllText(logPath, "\tUnable to verify certificate in IsAuthenticated()" + Environment.NewLine);
+                Global.LogInfo("\tUnable to verify certificate");
                 return false;
             }
         }
@@ -134,7 +127,7 @@ namespace PKI.Authentication.Module
                to check if the certificate is valid. */
             if (certificate == null)
             {
-                File.AppendAllText(logPath, "\tCertificate not found in Verify()" + Environment.NewLine);
+                Global.LogInfo("\tCertificate not found");
                 return false;
             }
             string subject = certificate.Subject;
@@ -180,7 +173,7 @@ namespace PKI.Authentication.Module
                 cName = match.Groups["cn"].Value;
                 return true;
             }
-            File.AppendAllText(logPath, "\tCN match not found" + Environment.NewLine);
+            Global.LogInfo("\tCommon Name not found. Unable to attach username to request with given certificate");
             return false;
         }
     }
