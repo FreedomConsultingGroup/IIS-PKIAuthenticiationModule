@@ -3,6 +3,9 @@ using log4net.Repository.Hierarchy;
 using log4net.Core;
 using log4net.Appender;
 using log4net.Layout;
+using log4net.Config;
+
+[assembly: XmlConfigurator(ConfigFile = @"C:\inetpub\wwwroot\portal\Ownership\log4net.config", Watch = true)]
 
 namespace FCG.PKIAuthentication
 {
@@ -19,7 +22,7 @@ namespace FCG.PKIAuthentication
         {
             if(Log == null)
             {
-                LogSetup();
+                //LogSetup();
                 Log = LogManager.GetLogger(typeof(Global));
                 Log.Info("Logging started");
             }
@@ -27,33 +30,33 @@ namespace FCG.PKIAuthentication
         }
 
         // Set configuration for logging
-        public static void LogSetup()
-        {
-            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+        //public static void LogSetup()
+        //{
+        //    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
 
-            PatternLayout pattern = new PatternLayout
-            {
-                ConversionPattern = "%date{MM-dd HH:mm} [%thread] %-5level %logger - %message%newline"
-            };
-            pattern.ActivateOptions();
+        //    PatternLayout pattern = new PatternLayout
+        //    {
+        //        ConversionPattern = "%date{MM-dd HH:mm} [%thread] %-5level %logger - %message%newline"
+        //    };
+        //    pattern.ActivateOptions();
 
-            RollingFileAppender rfa = new RollingFileAppender
-            {
-                Layout = pattern,
-                AppendToFile = true,
-                File = @"C:\inetpub\logs\PKIAuth\PKIAuth.log",
-                RollingStyle = RollingFileAppender.RollingMode.Composite,
-                DatePattern = ".yyyy-MM-dd",
-                MaxSizeRollBackups = 10,
-                StaticLogFileName = true,
-                MaximumFileSize = "1MB"
-            };
-            rfa.ActivateOptions();
+        //    RollingFileAppender rfa = new RollingFileAppender
+        //    {
+        //        Layout = pattern,
+        //        AppendToFile = true,
+        //        File = @"C:\inetpub\logs\PKIAuth\PKIAuth.log",
+        //        RollingStyle = RollingFileAppender.RollingMode.Composite,
+        //        DatePattern = ".yyyy-MM-dd",
+        //        MaxSizeRollBackups = 10,
+        //        StaticLogFileName = true,
+        //        MaximumFileSize = "1MB"
+        //    };
+        //    rfa.ActivateOptions();
 
-            hierarchy.Root.AddAppender(rfa);
+        //    hierarchy.Root.AddAppender(rfa);
 
-            hierarchy.Root.Level = Level.All;
-            hierarchy.Configured = true;
-        }
+        //    hierarchy.Root.Level = Level.All;
+        //    hierarchy.Configured = true;
+        //}
     }
 }
