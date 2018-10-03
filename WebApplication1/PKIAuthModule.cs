@@ -74,7 +74,7 @@ namespace FCG.PKIAuthentication
             if (Verify(certificate, ref cName))
             {
                 string[] name = cName.Trim().Split(' ');
-                if(name.Length == 1)
+                if (name.Length == 1)
                 {
                     username = name[0];
                 }
@@ -82,7 +82,7 @@ namespace FCG.PKIAuthentication
                 {
                     // max specifies the maximum length of the username generated
                     int max = 10;
-                    for(int i = 0; i < name.Length; i++)
+                    for (int i = 0; i < name.Length; i++)
                     {
                         int remaining = max - username.Length;
                         if (remaining < 0)
@@ -138,18 +138,27 @@ namespace FCG.PKIAuthentication
             Array.ForEach(File.ReadAllText(Environment.GetEnvironmentVariable("CA_USER_AUTHORITY_PASSWD")).ToCharArray(), b => passwd.AppendChar(b));
             root.Import(Environment.GetEnvironmentVariable("CA_USER_AUTHORITY"), passwd, X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet);
 
-            // TODO https://stackoverflow.com/questions/6497040/how-do-i-validate-that-a-certificate-was-created-by-a-particular-certification-a
+            X509Chain rootChain = new X509Chain();
+            rootChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            rootChain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+            rootChain.ChainPolicy.ExtraStore.Add(root);
 
-            string subject = certificate.Subject;
-            string userPattern = @"CN=(?<cn>[^,]+)";
-            Match match = Regex.Match(subject, userPattern, RegexOptions.None);
-            if (match.Success)
+            if (rootChain.Build(certificate))
             {
-                cName = match.Groups["cn"].Value;
-                return true;
+                string subject = certificate.Subject;
+                string userPattern = @"CN=(?<cn>[^,]+)";
+                Match match = Regex.Match(subject, userPattern, RegexOptions.None);
+                if (match.Success)
+                {
+                    cName = match.Groups["cn"].Value;
+                    return true;
+                }
+                Global.LogInfo("\tCommon Name not found. Unable to attach username to request with given certificate");
+                return false;
             }
-            Global.LogInfo("\tCommon Name not found. Unable to attach username to request with given certificate");
             return false;
+
+
         }
     }
 }
